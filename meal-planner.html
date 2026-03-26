@@ -1,0 +1,823 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Meal Planner</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600&family=DM+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --green:#1a9e75;--green-l:#e6f7f2;--green-d:#0f6e52;
+  --blue:#2563eb;--blue-l:#dbeafe;--blue-d:#1d4ed8;
+  --amber:#d97706;--amber-l:#fef3c7;
+  --red:#dc2626;--red-l:#fee2e2;
+  --purple:#7c3aed;--purple-l:#ede9fe;
+  --ink:#111827;--ink2:#374151;--ink3:#6b7280;--ink4:#9ca3af;
+  --line:#e5e7eb;--line2:#f3f4f6;--bg:#f9fafb;--card:#fff;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--ink);font-size:15px;padding-bottom:80px}
+.app{max-width:600px;margin:0 auto}
+.header{background:var(--card);border-bottom:1px solid var(--line);padding:14px 16px 0;position:sticky;top:0;z-index:50}
+.header-title{font-size:17px;font-weight:600;margin-bottom:12px}
+.tabs{display:flex;gap:0;border-bottom:1px solid var(--line)}
+.tab{flex:1;text-align:center;padding:9px 4px;font-size:13px;font-weight:500;color:var(--ink3);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px}
+.tab.active{color:var(--green);border-bottom-color:var(--green)}
+.panel{display:none;padding:14px 16px}
+.panel.active{display:block}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px;margin-bottom:12px}
+.card-title{font-size:11px;font-weight:600;color:var(--ink3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.card-badge{font-size:11px;background:var(--line2);color:var(--ink3);border-radius:8px;padding:1px 7px;font-weight:400;text-transform:none;letter-spacing:0}
+
+/* SLOTS */
+.slots-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
+.slot{border:1px solid var(--line);border-radius:9px;padding:11px 12px;cursor:pointer;position:relative;min-height:80px;transition:border-color .15s;background:var(--card)}
+.slot:hover{border-color:var(--ink4)}
+.slot.dinner-filled{border-color:#9FE1CB;background:var(--green-l)}
+.slot.lunch-filled{border-color:#B5D4F4;background:var(--blue-l)}
+.slot.randomized{animation:pop .3s ease}
+@keyframes pop{0%{transform:scale(.95);opacity:.5}100%{transform:scale(1);opacity:1}}
+.slot-label{font-size:10px;color:var(--ink4);margin-bottom:3px;text-transform:uppercase;letter-spacing:.04em}
+.slot-name{font-size:13px;font-weight:500;color:var(--ink);line-height:1.3;padding-right:20px}
+.slot.dinner-filled .slot-name{color:var(--green-d)}
+.slot.lunch-filled .slot-name{color:var(--blue-d)}
+.slot-empty{font-size:13px;color:var(--ink4);font-style:italic}
+.slot-meta{display:flex;align-items:center;gap:5px;margin-top:5px;flex-wrap:wrap}
+.slot-badge{font-size:10px;padding:2px 6px;border-radius:3px}
+.badge-needs{background:var(--amber-l);color:#92400e}
+.badge-ready{background:var(--green-l);color:var(--green-d)}
+.badge-lunch{background:var(--blue-l);color:var(--blue-d)}
+.badge-fav{background:var(--purple-l);color:var(--purple)}
+.badge-fresh{background:var(--line2);color:var(--ink3)}
+.badge-new{background:var(--purple-l);color:var(--purple)}
+.slot-rm{position:absolute;top:6px;right:8px;font-size:18px;color:var(--ink4);cursor:pointer;background:none;border:none;line-height:1}
+.slot-rm:hover{color:var(--red)}
+.slot-note{font-size:11px;color:var(--ink3);margin-top:3px;font-style:italic;line-height:1.3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}
+.slot-recipe{font-size:11px;color:var(--blue);cursor:pointer;padding:1px 0;text-decoration:none;}
+.slot-recipe:hover{text-decoration:underline}
+.meal-link{cursor:pointer;}
+.meal-link:hover{text-decoration:underline}
+
+/* GROUP LABEL */
+.group-lbl{font-size:11px;font-weight:600;color:var(--ink3);text-transform:uppercase;letter-spacing:.06em;margin:4px 0 6px;padding-bottom:4px;border-bottom:1px solid var(--line)}
+
+/* ACTIONS */
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px}
+.btn{font-size:13px;padding:7px 14px;border-radius:8px;border:1px solid var(--line);background:var(--card);color:var(--ink);cursor:pointer;font-family:'DM Sans',sans-serif}
+.btn:hover{background:var(--line2)}
+.btn-green{background:var(--green);border-color:var(--green);color:white}
+.btn-green:hover{background:var(--green-d)}
+.btn-blue{background:var(--blue);border-color:var(--blue);color:white}
+.btn-blue:hover{background:var(--blue-d)}
+.btn-full{width:100%}
+.tip{font-size:12px;color:var(--ink4);line-height:1.5;margin-top:6px}
+
+/* MEAL LIST */
+.meal-item{display:flex;align-items:flex-start;gap:8px;padding:9px 10px;border:1px solid var(--line);border-radius:9px;cursor:pointer;margin-bottom:6px;transition:border-color .15s;background:var(--card)}
+.meal-item:last-child{margin-bottom:0}
+.meal-item:hover{border-color:#9FE1CB;background:var(--green-l)}
+.meal-item.selected{border-color:var(--green);background:var(--green-l)}
+.meal-item.archived{opacity:.45;background:var(--line2);cursor:default}
+.meal-item.archived:hover{border-color:var(--line);background:var(--line2)}
+.meal-info{flex:1;min-width:0}
+.meal-name{font-size:13px;font-weight:500;color:var(--ink);line-height:1.3}
+.meal-sub{font-size:11px;color:var(--ink3);margin-top:2px;line-height:1.4;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.meal-tags{display:flex;gap:4px;flex-wrap:wrap;margin-top:4px}
+.meal-tag{font-size:10px;padding:2px 6px;border-radius:3px;white-space:nowrap}
+.tag-needs{background:var(--amber-l);color:#92400e}
+.tag-lunch{background:var(--blue-l);color:var(--blue-d)}
+.tag-dinner{background:var(--green-l);color:var(--green-d)}
+.tag-both{background:var(--line2);color:var(--ink3)}
+.tag-fav{background:var(--purple-l);color:var(--purple)}
+.tag-new{background:var(--purple-l);color:var(--purple)}
+.meal-right{display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0}
+.meal-cnt{font-size:11px;color:var(--ink4)}
+.meal-link{font-size:11px;color:var(--blue);text-decoration:none}
+.meal-link:hover{text-decoration:underline}
+.meal-actions{display:flex;gap:4px}
+.icon-btn{font-size:14px;color:var(--ink4);cursor:pointer;padding:3px 5px;border-radius:4px;line-height:1;border:none;background:none}
+.icon-btn:hover{color:var(--ink);background:var(--line2)}
+.icon-btn.restore{color:var(--green)}
+.archive-divider{font-size:11px;font-weight:600;color:var(--ink3);text-transform:uppercase;letter-spacing:.06em;margin:12px 0 6px;padding-bottom:4px;border-bottom:1px solid var(--line);cursor:pointer;display:flex;align-items:center;gap:6px}
+
+/* FILTER */
+.filter-row{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap}
+.filter-btn{font-size:12px;padding:4px 10px;border-radius:12px;border:1px solid var(--line);background:var(--card);color:var(--ink3);cursor:pointer}
+.filter-btn.active{background:var(--line2);color:var(--ink);font-weight:500}
+.search-input{font-size:13px;padding:8px 11px;border-radius:9px;border:1px solid var(--line);background:var(--card);color:var(--ink);width:100%;margin-bottom:10px;font-family:'DM Sans',sans-serif}
+.search-input:focus{outline:none;border-color:var(--green)}
+
+/* GROCERY */
+.grocery-group{margin-bottom:14px}
+.grocery-group-title{font-size:13px;font-weight:600;color:var(--ink);margin-bottom:6px;display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.g-item{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--line2)}
+.g-item:last-child{border-bottom:none}
+.g-check{width:20px;height:20px;border-radius:5px;border:1.5px solid var(--line);flex-shrink:0;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .15s;background:var(--card)}
+.g-check:hover{border-color:var(--green)}
+.g-check.done{background:var(--green);border-color:var(--green)}
+.g-check.done::after{content:"";display:block;width:5px;height:9px;border:2px solid white;border-top:none;border-left:none;transform:rotate(40deg) translate(-1px,-1px)}
+.g-text{font-size:13px;color:var(--ink)}
+.g-text.done{text-decoration:line-through;color:var(--ink4)}
+.empty{text-align:center;padding:24px;color:var(--ink4);font-size:13px}
+
+/* WEEK BARS */
+.bars{display:flex;gap:5px;align-items:flex-end}
+.bar-wrap{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px}
+.bar-bg{width:100%;background:var(--line2);border-radius:3px 3px 0 0;position:relative;height:55px;overflow:hidden}
+.bar-fill{position:absolute;bottom:0;left:0;right:0;background:var(--green)}
+.bar-day{font-size:10px;color:var(--ink4)}
+.bar-val{font-size:10px;color:var(--ink3);font-weight:500}
+
+/* ADD FORM */
+.add-form{background:var(--line2);border:1px solid var(--line);border-radius:10px;padding:14px;margin-bottom:10px}
+.form-label{font-size:11px;font-weight:600;color:var(--ink3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;display:block}
+.form-input{font-size:13px;padding:8px 11px;border-radius:8px;border:1px solid var(--line);background:var(--card);color:var(--ink);width:100%;margin-bottom:8px;font-family:'DM Sans',sans-serif}
+.form-input:focus{outline:none;border-color:var(--green)}
+textarea.form-input{resize:vertical;min-height:60px}
+.form-row{display:flex;gap:8px}
+.form-row .form-input{margin-bottom:0}
+
+/* PICKER */
+.picker-overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.4);display:flex;align-items:flex-end;z-index:100}
+.picker-sheet{background:var(--card);border-radius:16px 16px 0 0;padding:16px;width:100%;max-height:75vh;overflow-y:auto}
+.picker-header{font-size:15px;font-weight:600;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center}
+.picker-close{font-size:24px;cursor:pointer;color:var(--ink3);background:none;border:none;line-height:1}
+
+/* TOAST */
+.toast{position:fixed;bottom:70px;left:50%;transform:translateX(-50%);background:var(--ink);color:white;font-size:13px;padding:8px 18px;border-radius:20px;opacity:0;transition:opacity .25s;pointer-events:none;z-index:200;white-space:nowrap}
+.toast.show{opacity:1}
+</style>
+</head>
+<body>
+<div class="app">
+
+<div class="header">
+  <div class="header-title">Meal Planner</div>
+  <div class="tabs">
+    <div class="tab active" onclick="switchTab('plan')">This week</div>
+    <div class="tab" onclick="switchTab('meals')">Meals</div>
+    <div class="tab" onclick="switchTab('grocery')">Grocery</div>
+  </div>
+</div>
+
+<!-- PLAN -->
+<div class="panel active" id="panel-plan">
+  <div class="card">
+    <div class="card-title">Dinners <span class="card-badge" id="dinner-count">0 / 4</span></div>
+    <div class="slots-grid" id="dinner-slots"></div>
+    <div class="actions">
+      <button class="btn btn-blue" onclick="randomize('dinner')">Randomize dinners</button>
+      <button class="btn" onclick="addSlot('dinner')" id="add-dinner-btn">+ Add slot</button>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Lunches <span class="card-badge" id="lunch-count">0 / 4</span></div>
+    <div class="slots-grid" id="lunch-slots"></div>
+    <div class="actions">
+      <button class="btn btn-blue" onclick="randomize('lunch')">Randomize lunches</button>
+      <button class="btn" onclick="addSlot('lunch')" id="add-lunch-btn">+ Add slot</button>
+    </div>
+  </div>
+  <div class="actions">
+    <button class="btn" onclick="switchTab('grocery')">View grocery list</button>
+    <button class="btn" onclick="clearPlan()">Clear all</button>
+  </div>
+  <div class="tip">Plan persists until you clear it. Tap any slot to swap.</div>
+</div>
+
+<!-- MEALS -->
+<div class="panel" id="panel-meals">
+  <div class="card">
+    <div id="add-form-wrap" style="display:none">
+      <div class="add-form">
+        <label class="form-label">Meal name</label>
+        <input type="text" class="form-input" id="new-name" placeholder="e.g. Chicken stir fry" />
+        <label class="form-label">Category</label>
+        <select class="form-input" id="new-cat">
+          <option value="dinner">Dinner only</option>
+          <option value="lunch">Lunch only</option>
+          <option value="both">Both lunch & dinner</option>
+        </select>
+        <label class="form-label">Status</label>
+        <select class="form-input" id="new-status">
+          <option value="normal">Ready to cook</option>
+          <option value="needs">Needs shopping</option>
+        </select>
+        <label class="form-label">Recipe URL (optional)</label>
+        <input type="text" class="form-input" id="new-url" placeholder="https://..." />
+        <label class="form-label">Notes (optional)</label>
+        <textarea class="form-input" id="new-notes" placeholder="e.g. Sub chicken broth for wine, add extra garlic..."></textarea>
+        <label class="form-label">Ingredients to buy (one per line)</label>
+        <textarea class="form-input" id="new-ingredients" placeholder="e.g.&#10;1 lb chicken breast&#10;bell peppers"></textarea>
+        <div class="form-row" style="margin-top:4px">
+          <button class="btn btn-green" onclick="saveNewMeal()" style="flex:1">Add meal</button>
+          <button class="btn" onclick="cancelAdd()">Cancel</button>
+        </div>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;margin-bottom:10px;align-items:center">
+      <input type="text" class="search-input" style="margin:0;flex:1" placeholder="Search meals..." oninput="filterMeals(this.value)" />
+      <button class="btn btn-green" id="add-meal-btn" onclick="toggleAddForm()" style="white-space:nowrap">+ Add meal</button>
+    </div>
+    <div class="filter-row">
+      <div class="filter-btn active" onclick="setFilter('all',this)">All</div>
+      <div class="filter-btn" onclick="setFilter('dinner',this)">Dinner</div>
+      <div class="filter-btn" onclick="setFilter('lunch',this)">Lunch</div>
+      <div class="filter-btn" onclick="setFilter('both',this)">Both</div>
+      <div class="filter-btn" onclick="setFilter('needs',this)">Needs shopping</div>
+      <div class="filter-btn" onclick="setFilter('favorites',this)">Favorites</div>
+      <div class="filter-btn" onclick="setFilter('new',this)">New</div>
+    </div>
+    <div id="meal-grid"></div>
+  </div>
+</div>
+
+<!-- GROCERY -->
+<div class="panel" id="panel-grocery">
+  <div class="card">
+    <div class="card-title">Grocery list <span class="card-badge" id="g-badge"></span></div>
+    <div id="grocery-content"></div>
+  </div>
+</div>
+
+</div><!-- .app -->
+
+<!-- PICKER -->
+<div id="picker-overlay" class="picker-overlay" style="display:none" onclick="closePicker(event)">
+  <div class="picker-sheet">
+    <div class="picker-header">
+      <span id="picker-title">Pick a meal</span>
+      <button class="picker-close" onclick="closePicker()">×</button>
+    </div>
+    <input type="text" class="search-input" id="picker-search" placeholder="Search..." oninput="renderPickerList(this.value)" />
+    <div id="picker-list"></div>
+  </div>
+</div>
+
+<!-- MEAL DETAIL SHEET -->
+<div id="detail-overlay" class="picker-overlay" style="display:none" onclick="closeDetail(event)">
+  <div class="picker-sheet" id="detail-sheet"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ── STAPLES ───────────────────────────────────────────────────────────────
+var STAPLES=new Set(["salt","pepper","salt & pepper","basic spices","cumin","paprika","chili powder","italian seasoning","garlic powder","onion powder","butter","olive oil","garlic","fresh garlic","soy sauce","sesame oil","eggs","egg","rice","chicken broth","shredded cheddar","cheddar cheese","flour tortillas","breadcrumbs","parmesan","mayo","ketchup","mustard","condiments","dipping sauces","shredded mozzarella","mozzarella","heavy cream","honey","brown sugar","fish sauce","sriracha","hot sauce","chili flakes","red pepper flakes","jar of marinara","marinara","diced tomatoes","canned tomatoes","tomato sauce","corn","canned corn","green onions","lemon","lime","lemon / lime","parsley","rosemary"]);
+function isStaple(i){var l=i.toLowerCase();for(var s of STAPLES){if(l.includes(s))return true;}return false;}
+
+// ── MEALS ─────────────────────────────────────────────────────────────────
+// cat: 'dinner' | 'lunch' | 'both'
+// list: 'normal' | 'needs'
+var BUILT_IN=[
+  // DINNERS ONLY
+  {name:"Shrimp scampi",cat:"dinner",list:"normal",url:"https://www.onceuponachef.com/recipes/shrimp-scampi-with-pasta.html",notes:"Sub chicken broth for wine, no lemon juice",i:["1 lb shrimp (peeled)","pasta"]},
+  {name:"Pad Thai",cat:"dinner",list:"normal",url:"https://tastesbetterfromscratch.com/pad-thai/",notes:"",i:["rice noodles","2 chicken breasts","bean sprouts","ginger"]},
+  {name:"Thai fried rice noodles",cat:"dinner",list:"normal",url:"https://www.thespruceeats.com/easy-thai-fried-rice-noodles-3217132",notes:"",i:["flat rice noodles","2 chicken breasts","bean sprouts"]},
+  {name:"Indian butter chicken with rice",cat:"dinner",list:"normal",url:"https://www.goodlifeeats.com/wp-json/mv-create/v1/creations/239/print",notes:"",i:["2 lb chicken thighs","ginger","garam masala","turmeric"]},
+  {name:"Tikka Masala",cat:"dinner",list:"needs",url:"https://myheartbeets.com/wprm_print/13860",notes:"",i:["2 lb chicken thighs","ginger","garam masala","turmeric","naan"]},
+  {name:"Tandoori Chicken",cat:"dinner",list:"needs",url:"https://www.delish.com/cooking/recipe-ideas/a20267342/tandoori-chicken-recipe/",notes:"",i:["2 lb chicken thighs","plain Greek yogurt","tandoori spice blend","ginger","naan"]},
+  {name:"Gyros",cat:"dinner",list:"needs",url:"https://www.themediterraneandish.com/gyros-recipe/",notes:"",i:["1 lb ground lamb or beef","pita bread","cucumber","tomato","red onion","Greek yogurt","fresh dill","tzatziki sauce"]},
+  {name:"Ramen Bowl",cat:"dinner",list:"needs",url:"https://www.killingthyme.net/easy-homemade-ramen-bowls/",notes:"",i:["ramen noodles (4 packs)","2 chicken breasts","ginger","soft-boiled eggs (optional)","nori (optional)"]},
+  {name:"Chicken cordon bleu",cat:"dinner",list:"normal",url:"https://www.spendwithpennies.com/chicken-cordon-bleu/",notes:"",i:["4 chicken breasts","deli ham","Swiss cheese slices","toothpicks"]},
+  {name:"Chicken Tetrazzini",cat:"dinner",list:"normal",url:"https://www.spendwithpennies.com/chicken-tetrazzini/",notes:"Use rotisserie chicken, heavy cream instead of milk, add garlic and Italian seasoning",i:["2 chicken breasts or rotisserie chicken","spaghetti","cream of mushroom soup (2 cans)","sliced mushrooms","frozen peas","sour cream","chicken bouillon"]},
+  {name:"Baked ziti",cat:"dinner",list:"normal",url:"https://www.spendwithpennies.com/baked-ziti/",notes:"",i:["1 lb Italian sausage","ziti pasta","ricotta"]},
+  {name:"Creamy Tuscan chicken pasta",cat:"dinner",list:"normal",url:"https://cafedelites.com/tuscan-garlic-chicken/",notes:"",i:["2 chicken breasts","pasta","sun-dried tomatoes","fresh spinach","cream cheese"]},
+  {name:"Beef and broccoli stir fry",cat:"dinner",list:"normal",url:"https://www.recipetineats.com/beef-and-broccoli/",notes:"",i:["1 lb flank steak or sirloin","broccoli","oyster sauce","cornstarch","ginger"]},
+  {name:"Carne asada tacos",cat:"dinner",list:"needs",url:"https://www.isabeleats.com/carne-asada/",notes:"",i:["1.5 lb flank or skirt steak","corn tortillas","white onion","fresh cilantro","avocado","carne asada marinade"]},
+  {name:"Philly cheesesteak skillet",cat:"dinner",list:"normal",url:"https://www.wellplated.com/philly-cheesesteak/",notes:"",i:["1 lb shaved ribeye or sirloin","green bell pepper","white onion","provolone cheese","hoagie rolls"]},
+  {name:"Gnocchi with Italian Sausage",cat:"dinner",list:"needs",url:"https://dinnerly.com/menu/17795-pan-fried-gnocchi-with-lemon-mascarpone-spinach",notes:"",i:["bag of gnocchi","1/2 lb Italian sausage","spinach"]},
+  {name:"Chicken Sausage White Bean Cassoulet",cat:"dinner",list:"needs",url:"https://www.spendwithpennies.com/sausage-and-white-bean-soup/",notes:"",i:["2 chicken thighs","Italian sausage","white beans (2 cans)","fresh thyme","bay leaf","carrots","celery"]},
+  {name:"Shrimp Enchiladas",cat:"dinner",list:"needs",url:"https://www.eatingwell.com/recipe/253090/quick-shrimp-enchilada-bake/",notes:"",i:["1 lb shrimp","enchilada sauce","sour cream"]},
+  {name:"Pork tenderloin",cat:"dinner",list:"normal",url:"https://www.spendwithpennies.com/juicy-pork-tenderloin/",notes:"",i:["1.5 lb pork tenderloin","Dijon mustard","Italian seasoning","dried thyme"]},
+  {name:"Pork loin",cat:"dinner",list:"normal",url:"https://www.recipetineats.com/pork-loin-roast/",notes:"",i:["2 lb pork loin roast","Dijon mustard","dried thyme","onion powder"]},
+  {name:"Parmesan crusted pork loin",cat:"dinner",list:"normal",url:"https://www.spendwithpennies.com/parmesan-crusted-pork-chops/",notes:"",i:["2 lb pork loin","Dijon mustard","panko breadcrumbs"]},
+  {name:"Salmon",cat:"dinner",list:"normal",url:"https://www.recipetineats.com/salmon/",notes:"",i:["4 salmon fillets","olive oil (fresh bottle if out)"]},
+  {name:"Lemon-Garlic Salmon",cat:"dinner",list:"normal",url:"https://www.spendwithpennies.com/lemon-garlic-butter-salmon/",notes:"",i:["4 salmon fillets","capers (optional)"]},
+  {name:"Honey-Soy Salmon",cat:"dinner",list:"normal",url:"https://www.recipetineats.com/honey-garlic-salmon/",notes:"",i:["4 salmon fillets","sesame seeds"]},
+  {name:"Sheet-Pan Honey Jerk Salmon",cat:"dinner",list:"normal",url:"https://www.today.com/recipes/sheet-pan-jerk-salmon-t282272",notes:"",i:["4 salmon fillets","jerk seasoning","bell peppers","red onion"]},
+  {name:"Shishkabobs",cat:"dinner",list:"normal",url:"https://www.spendwithpennies.com/chicken-kabobs/",notes:"",i:["1.5 lb chicken or beef","bell peppers","red onion","zucchini","skewers","Italian dressing (marinade)"]},
+  {name:"Lemon herb chicken thighs (sheet pan)",cat:"dinner",list:"normal",url:"https://www.recipetineats.com/lemon-herb-baked-chicken-thighs/",notes:"",i:["4 chicken thighs","potatoes","fresh thyme"]},
+  {name:"Caesar Chicken Thighs with Broccoli",cat:"dinner",list:"needs",url:"https://www.today.com/recipes/caesar-chicken-thighs-broccoli-recipe-t280625",notes:"",i:["4 chicken thighs","Caesar dressing","broccoli florets"]},
+  {name:"Orange Teriyaki Chicken",cat:"dinner",list:"needs",url:"https://www.spendwithpennies.com/teriyaki-chicken/",notes:"",i:["2 chicken breasts","orange juice","orange zest","cornstarch","sesame seeds"]},
+  {name:"Oriental Sesame Chicken",cat:"dinner",list:"needs",url:"https://www.spendwithpennies.com/honey-sesame-chicken/",notes:"",i:["2 chicken breasts","rice vinegar","sesame seeds","broccoli","cornstarch","oyster sauce"]},
+  {name:"Chicken Kabob",cat:"dinner",list:"needs",url:"https://www.spendwithpennies.com/chicken-kabobs/",notes:"",i:["2 chicken breasts","bell peppers","red onion","zucchini","skewers","Greek yogurt (marinade)"]},
+  {name:"Chorizo and Potato Taquitos",cat:"dinner",list:"needs",url:"https://cookingwithcocktailrings.com/potato-chorizo-taquitos/",notes:"",i:["chorizo","3-4 potatoes","sour cream","salsa","oil for frying"]},
+  {name:"Potato and Ham Bake",cat:"dinner",list:"needs",url:"https://www.spendwithpennies.com/cheesy-potato-ham-casserole/",notes:"",i:["4-5 Yukon gold potatoes","diced ham","sour cream","cream of mushroom soup","shredded cheddar (fresh bag)"]},
+  {name:"Creamy chicken and gnocchi soup",cat:"dinner",list:"normal",url:"https://www.spendwithpennies.com/chicken-gnocchi-soup/",notes:"",i:["2 chicken breasts","bag of gnocchi","fresh spinach","carrots","celery","cream cheese"]},
+  {name:"Greek chicken bowls",cat:"dinner",list:"normal",url:"https://www.themediterraneandish.com/greek-chicken-bowls/",notes:"",i:["2 chicken breasts","cucumber","cherry tomatoes","red onion","Greek yogurt","pita bread","feta cheese"]},
+  {name:"Chicken and stuffing bake",cat:"dinner",list:"normal",url:"https://www.pillsbury.com/recipes/chicken-and-stuffing-bake",notes:"",i:["2 chicken breasts","box of stuffing mix","cream of chicken soup","sour cream"]},
+  {name:"Honey garlic chicken and rice (one pan)",cat:"dinner",list:"normal",url:"https://www.recipetineats.com/honey-garlic-chicken/",notes:"",i:["4 chicken thighs"]},
+  // BOTH
+  {name:"Spaghetti and meatballs",cat:"both",list:"normal",url:"https://www.recipetineats.com/spaghetti-meatballs/",notes:"",i:["1 lb ground beef","spaghetti","onion","Italian seasoning","Worcestershire sauce"]},
+  {name:"Burgers",cat:"both",list:"normal",url:"https://www.recipetineats.com/classic-juicy-hamburger-recipe/",notes:"",i:["1.5 lb 80/20 ground beef","burger buns","lettuce","tomato","red onion","American or cheddar cheese slices"]},
+  {name:"Smash burgers",cat:"both",list:"normal",url:"https://www.seriouseats.com/smash-burgers",notes:"",i:["1.5 lb 80/20 ground beef","burger buns","american cheese","white onion"]},
+  {name:"Tacos",cat:"both",list:"normal",url:"https://www.spendwithpennies.com/ground-beef-tacos/",notes:"",i:["1 lb ground beef","taco shells or tortillas","lettuce","tomato","sour cream","shredded cheese (fresh)","taco seasoning packet"]},
+  {name:"Taco soup",cat:"both",list:"normal",url:"https://www.spendwithpennies.com/taco-soup/",notes:"",i:["1 lb ground beef","black beans (can)","taco seasoning packet","sour cream","ranch seasoning packet"]},
+  {name:"Lasagna",cat:"both",list:"normal",url:"https://www.spendwithpennies.com/easy-homemade-lasagna/",notes:"",i:["1 lb ground beef","lasagna noodles","ricotta cheese","Italian sausage (optional)","Italian seasoning"]},
+  {name:"Chicken fried rice",cat:"both",list:"normal",url:"https://www.spendwithpennies.com/chicken-fried-rice/",notes:"",i:["2 chicken breasts","cooked rice (day-old)","frozen peas & carrots","sesame oil (fresh)"]},
+  {name:"Fried Rice",cat:"both",list:"normal",url:"https://www.gimmesomeoven.com/fried-rice-recipe/",notes:"",i:["cooked rice (day-old)","frozen peas & carrots"]},
+  {name:"Korean Ground Beef and Rice Bowls",cat:"both",list:"normal",url:"https://therecipecritic.com/korean-ground-beef-rice-bowls/",notes:"",i:["1 lb ground beef","ginger"]},
+  {name:"Enchiladas",cat:"both",list:"needs",url:"https://www.spendwithpennies.com/easy-beef-enchiladas/",notes:"",i:["2 chicken breasts or ground beef","enchilada sauce (2 cans)","sour cream","flour tortillas (fresh)","shredded cheese (fresh bag)"]},
+  {name:"Chicken burrito bowls",cat:"both",list:"normal",url:"https://www.gimmesomeoven.com/chicken-burrito-bowls/",notes:"",i:["2 chicken breasts","black beans (can)","sour cream","salsa","avocado","taco seasoning packet"]},
+  {name:"Ground beef casserole (baked penne)",cat:"both",list:"normal",url:"https://feelgoodfoodie.net/recipe/ground-beef-casserole/",notes:"",i:["1 lb ground beef","penne pasta","ricotta"]},
+  {name:"Teriyaki Chicken Bowl",cat:"both",list:"normal",url:"https://www.spendwithpennies.com/teriyaki-chicken-rice-bowls/",notes:"",i:["2 chicken breasts","broccoli","sesame seeds","cornstarch","rice vinegar"]},
+  {name:"Instant Pot Teriyaki Chicken and Veggies",cat:"both",list:"normal",url:"https://triedtestedandtrue.com/instant-pot-chicken-teriyaki-bowl/",notes:"",i:["2 chicken breasts","ginger","broccoli","carrots"]},
+  {name:"White chicken chili",cat:"both",list:"normal",url:"https://www.allrecipes.com/recipe/14665/white-chicken-chili/",notes:"",i:["2 chicken breasts","white beans (2 cans)","green chiles (can)","sour cream","cream cheese"]},
+  {name:"Chicken tortilla soup",cat:"both",list:"normal",url:"https://www.gimmesomeoven.com/chicken-tortilla-soup/",notes:"",i:["2 chicken breasts","black beans (can)","green chiles (can)","sour cream","avocado","tortilla strips","taco seasoning packet"]},
+  {name:"Sheet pan chicken fajitas",cat:"both",list:"normal",url:"https://www.wellplated.com/sheet-pan-chicken-fajitas/",notes:"",i:["2 chicken breasts","bell peppers","red onion","fajita seasoning","flour tortillas (for serving)"]},
+  {name:"Tater tot bake",cat:"both",list:"normal",url:"https://www.spendwithpennies.com/classic-tater-tot-casserole/",notes:"",i:["1 lb ground beef","frozen tater tots","cream of mushroom soup","onion","Worcestershire sauce"]},
+  {name:"Ravioli",cat:"both",list:"normal",url:"https://www.spendwithpennies.com/ravioli-with-meat-sauce/",notes:"",i:["bag of frozen ravioli","Italian sausage","fresh basil"]},
+  {name:"Broccoli Cheddar Soup",cat:"both",list:"normal",url:"https://www.spendwithpennies.com/broccoli-cheese-soup/",notes:"",i:["broccoli florets","carrots","onion","cream cheese","shredded cheddar (large bag)","chicken bouillon"]},
+  {name:"One-pot cheesy bacon ranch pasta with chicken",cat:"both",list:"normal",url:"https://www.allrecipes.com/recipe/282523/one-pot-cheesy-bacon-ranch-pasta-with-chicken-and-broccoli/",notes:"",i:["2 chicken breasts","pasta","bacon","ranch seasoning packet","cream cheese","broccoli florets"]},
+  {name:"Chicken cordon bleu casserole",cat:"both",list:"normal",url:"https://www.allrecipes.com/chicken-cordon-bleu-casserole-for-one-recipe-11687565",notes:"",i:["2 chicken breasts","deli ham","swiss cheese","cream of chicken soup","sour cream"]},
+  {name:"Basil Thai Chicken and peppers",cat:"both",list:"normal",url:"https://www.chewoutloud.com/thai-basil-chicken-with-peppers/",notes:"",i:["2 chicken breasts","bell peppers","fresh basil","oyster sauce"]},
+  {name:"Spaghetti with Sausage and Spinach",cat:"both",list:"needs",url:"https://www.spendwithpennies.com/italian-sausage-pasta/",notes:"",i:["1 lb Italian sausage","spaghetti","fresh spinach","crushed red pepper","white wine or extra chicken broth"]},
+  {name:"Totchos",cat:"both",list:"needs",url:"https://www.spendwithpennies.com/totchos/",notes:"",i:["frozen tater tots","1 lb ground beef or chorizo","jalapeños","sour cream","salsa","black beans (can)","green onions"]},
+  {name:"Easy Chicken Fried Rice",cat:"both",list:"needs",url:"https://www.today.com/recipes/rotisserie-chicken-fried-rice-recipe-t269446",notes:"",i:["rotisserie chicken","cooked rice (day-old)","frozen peas & carrots"]},
+  {name:"Fish Tacos",cat:"both",list:"needs",url:"https://www.spendwithpennies.com/fish-tacos/",notes:"",i:["1 lb white fish (tilapia or cod)","corn tortillas","coleslaw mix","sour cream","salsa","chipotle powder"]},
+  {name:"Instant Pot Chicken and Rice",cat:"both",list:"needs",url:"https://www.spendwithpennies.com/instant-pot-chicken-and-rice/",notes:"",i:["2 chicken breasts","cream of mushroom soup","onion soup mix","long grain white rice"]},
+  {name:"Tortellini Soup",cat:"both",list:"needs",url:"https://www.spendwithpennies.com/tortellini-soup/",notes:"",i:["bag of frozen tortellini","Italian sausage","fresh spinach","onion","chicken bouillon","Italian seasoning"]},
+  // LUNCH ONLY
+  {name:"Hot dogs",cat:"lunch",list:"normal",url:"https://www.spendwithpennies.com/how-to-cook-hot-dogs/",notes:"",i:["hot dogs","hot dog buns"]},
+  {name:"Nuggets",cat:"lunch",list:"normal",url:"https://www.spendwithpennies.com/crispy-baked-chicken-nuggets/",notes:"",i:["frozen chicken nuggets"]},
+  {name:"Quesadilla",cat:"lunch",list:"normal",url:"https://www.spendwithpennies.com/chicken-quesadilla/",notes:"",i:["flour tortillas (fresh)","shredded cheese (fresh)","2 chicken breasts (optional)","sour cream","salsa"]},
+  {name:"Hot ham and cheese",cat:"lunch",list:"normal",url:"https://www.spendwithpennies.com/ham-and-cheese-sliders/",notes:"",i:["deli ham","sliced Swiss or cheddar","Hawaiian rolls or hoagie rolls","Dijon mustard","poppy seeds (optional)"]},
+  {name:"Pizza",cat:"lunch",list:"normal",url:"https://www.recipetineats.com/pizza-dough/",notes:"",i:["pizza dough or Boboli crust","pizza sauce","shredded mozzarella (fresh bag)","pepperoni or toppings of choice"]},
+];
+
+// ── STATE ──────────────────────────────────────────────────────────────────
+var state;
+try{state=JSON.parse(localStorage.getItem('mp_v2')||'null');}catch(e){}
+if(!state)state={dinners:[null,null,null,null],lunches:[null,null,null,null],gc:{},history:{},pickCounts:{},archived:[],custom:[]};
+if(!state.dinners)state.dinners=[null,null,null,null];
+if(!state.lunches)state.lunches=[null,null,null,null];
+if(!state.gc)state.gc={};
+if(!state.history)state.history={};
+if(!state.pickCounts)state.pickCounts={};
+if(!state.archived)state.archived=[];
+if(!state.custom)state.custom=[];
+
+function save(){try{localStorage.setItem('mp_v2',JSON.stringify(state));}catch(e){}}
+
+function getMeals(){
+  return BUILT_IN.concat(state.custom.map(function(m){
+    return Object.assign({},m,{ingredients:(m.i||[]).filter(function(x){return !isStaple(x);})});
+  })).map(function(m){
+    return Object.assign({},m,{ingredients:(m.i||[]).filter(function(x){return !isStaple(x);})});
+  });
+}
+
+function getDinnerPool(){return getMeals().filter(function(m){return (m.cat==='dinner'||m.cat==='both')&&!isArchived(m.name);});}
+function getLunchPool(){return getMeals().filter(function(m){return (m.cat==='lunch'||m.cat==='both')&&!isArchived(m.name);});}
+function isArchived(n){return state.archived.includes(n);}
+function isFav(n){return (state.pickCounts[n]||0)>=3;}
+function agoLabel(n){
+  if(!state.history[n])return null;
+  var wks=Math.round((Date.now()-new Date(state.history[n]+'T00:00:00').getTime())/(7*24*60*60*1000));
+  return wks===0?'this week':wks===1?'1 wk ago':wks+'wks ago';
+}
+
+// ── SCORING ────────────────────────────────────────────────────────────────
+function score(m){
+  var last=state.history[m.name]?new Date(state.history[m.name]+'T00:00:00').getTime():0;
+  var wks=last?(Date.now()-last)/(7*24*60*60*1000):99;
+  var cnt=state.pickCounts[m.name]||0;
+  var rec=wks<1?0:wks<2?10:wks<4?40:wks<8?70:90;
+  return rec*0.5+Math.min(cnt*15,60)*0.5+Math.random()*20;
+}
+
+function weightedPick(pool,n){
+  var active=pool.filter(function(m){return !isArchived(m.name);});
+  var scored=active.map(function(m){return{m:m,s:score(m)};}).sort(function(a,b){return b.s-a.s;});
+  var top=scored.slice(0,Math.min(15,scored.length));
+  var total=top.reduce(function(s,x){return s+x.s;},0);
+  var picked=[];var used=new Set();var att=0;
+  while(picked.length<n&&att<300){
+    att++;var r=Math.random()*total;
+    for(var i=0;i<top.length;i++){r-=top[i].s;if(r<=0&&!used.has(i)){used.add(i);picked.push(top[i].m);break;}}
+  }
+  if(picked.length<n){
+    var rem=active.filter(function(m){return !picked.some(function(p){return p.name===m.name;});});
+    while(picked.length<n&&rem.length)picked.push(rem.splice(Math.floor(Math.random()*rem.length),1)[0]);
+  }
+  return picked.slice(0,n);
+}
+
+// ── TOAST ──────────────────────────────────────────────────────────────────
+var toastTimer=null;
+function showToast(msg){var t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(function(){t.classList.remove('show');},2000);}
+
+// ── RANDOMIZE ──────────────────────────────────────────────────────────────
+function randomize(type){
+  if(type==='dinner'){
+    var n=state.dinners.length; // preserve current slot count
+    var pool=getDinnerPool();
+    state.dinners=weightedPick(pool,n);
+    while(state.dinners.length<n)state.dinners.push(null);
+  } else {
+    var n2=state.lunches.length;
+    var pool2=getLunchPool();
+    state.lunches=weightedPick(pool2,n2);
+    while(state.lunches.length<n2)state.lunches.push(null);
+  }
+  save();renderPlan(true);
+}
+
+// ── PLAN RENDER ────────────────────────────────────────────────────────────
+function renderPlan(animate){
+  renderSlots('dinner-slots',state.dinners,'dinner',animate);
+  renderSlots('lunch-slots',state.lunches,'lunch',animate);
+  document.getElementById('dinner-count').textContent=state.dinners.filter(Boolean).length+' / '+state.dinners.length;
+  document.getElementById('lunch-count').textContent=state.lunches.filter(Boolean).length+' / '+state.lunches.length;
+  document.getElementById('add-dinner-btn').style.display=state.dinners.length>=6?'none':'';
+  document.getElementById('add-lunch-btn').style.display=state.lunches.length>=6?'none':'';
+}
+
+function renderSlots(id,plan,type,animate){
+  var el=document.getElementById(id);el.innerHTML='';
+  plan.forEach(function(m,i){
+    var div=document.createElement('div');
+    var filled=m?(type==='lunch'?'lunch-filled':'dinner-filled'):'';
+    div.className='slot'+( m?' '+filled:'')+(animate&&m?' randomized':'');
+    div.onclick=function(){openPicker(i,type);};
+    if(m){
+      var shopBadge=m.list==='needs'?'<span class="slot-badge badge-needs">needs shopping</span>':'<span class="slot-badge badge-ready">ready</span>';
+      var favBadge=isFav(m.name)?'<span class="slot-badge badge-fav">fav</span>':'';
+      var ago=agoLabel(m.name);var agoBadge=ago&&ago!=='this week'?'<span class="slot-badge badge-fresh">'+ago+'</span>':'';
+      var noteHtml=m.notes?'<div class="slot-note">'+m.notes+'</div>':'';
+      div.innerHTML='<div class="slot-label">'+(type==='lunch'?'Lunch':'Dinner')+' '+(i+1)+'</div>'
+        +'<div class="slot-name">'+m.name+'</div>'
+        +noteHtml
+        +'<div class="slot-meta">'+shopBadge+favBadge+agoBadge+'</div>';
+      // Append real anchor — Safari requires this to actually navigate
+      if(m.url){
+        var ra=document.createElement('a');
+        ra.href=m.url;ra.target='_blank';ra.className='slot-recipe';ra.textContent='recipe ↗';
+        ra.addEventListener('click',function(e){e.stopPropagation();});
+        div.querySelector('.slot-meta').appendChild(ra);
+      }
+      var rm=document.createElement('button');rm.className='slot-rm';rm.textContent='×';
+      rm.onclick=function(e){e.stopPropagation();removeSlot(i,type);};
+      div.appendChild(rm);
+    } else {
+      div.innerHTML='<div class="slot-label">'+(type==='lunch'?'Lunch':'Dinner')+' '+(i+1)+'</div><div class="slot-empty">tap to pick</div>';
+    }
+    el.appendChild(div);
+  });
+}
+
+function removeSlot(i,type){
+  if(type==='dinner')state.dinners[i]=null;else state.lunches[i]=null;
+  state.gc={};save();renderPlan();
+}
+function addSlot(type){
+  if(type==='dinner'&&state.dinners.length<6){state.dinners.push(null);save();renderPlan();}
+  else if(type==='lunch'&&state.lunches.length<6){state.lunches.push(null);save();renderPlan();}
+}
+function clearPlan(){state.dinners=[null,null,null,null];state.lunches=[null,null,null,null];state.gc={};save();renderPlan();}
+
+// ── MEAL LIST ──────────────────────────────────────────────────────────────
+var activeFilter='all',searchTerm='',showArchived=false,addFormOpen=false;
+
+function renderMeals(filter,search){
+  var el=document.getElementById('meal-grid');el.innerHTML='';
+  var all=getMeals();
+  var active=all.filter(function(m){return !isArchived(m.name);});
+  var archived=all.filter(function(m){return isArchived(m.name);});
+
+  var list=active.filter(function(m){
+    if(filter==='dinner')return m.cat==='dinner'||m.cat==='both';
+    if(filter==='lunch')return m.cat==='lunch'||m.cat==='both';
+    if(filter==='both')return m.cat==='both';
+    if(filter==='needs')return m.list==='needs';
+    if(filter==='favorites')return isFav(m.name);
+    if(filter==='new')return !!m.isNew;
+    return true;
+  });
+  if(search){
+    list=list.filter(function(m){return m.name.toLowerCase().includes(search.toLowerCase());});
+    archived=archived.filter(function(m){return m.name.toLowerCase().includes(search.toLowerCase());});
+  }
+
+  // Group active list by category
+  if(filter==='all'&&!search){
+    var groups=[
+      {label:'Dinner only',items:list.filter(function(m){return m.cat==='dinner';})},
+      {label:'Both lunch & dinner',items:list.filter(function(m){return m.cat==='both';})},
+      {label:'Lunch only',items:list.filter(function(m){return m.cat==='lunch';})},
+    ];
+    groups.forEach(function(g){
+      if(!g.items.length)return;
+      var lbl=document.createElement('div');lbl.className='group-lbl';lbl.textContent=g.label;
+      el.appendChild(lbl);
+      g.items.forEach(function(m){el.appendChild(makeMealItem(m));});
+    });
+  } else {
+    if(!list.length&&!archived.length){el.innerHTML='<div class="empty">No meals match</div>';return;}
+    list.forEach(function(m){el.appendChild(makeMealItem(m));});
+  }
+
+  // Archived
+  if(archived.length){
+    var div=document.createElement('div');div.className='archive-divider';
+    div.innerHTML='<span>'+(showArchived?'▾':'▸')+' Archived ('+archived.length+')</span>';
+    div.onclick=function(){showArchived=!showArchived;renderMeals(activeFilter,searchTerm);};
+    el.appendChild(div);
+    if(showArchived){
+      archived.forEach(function(m){
+        var item=document.createElement('div');item.className='meal-item archived';
+        item.innerHTML='<div class="meal-info"><div class="meal-name">'+m.name+'</div></div>'
+          +'<div class="meal-right"><div class="meal-actions"><button class="icon-btn restore" data-r="'+m.name+'" title="Restore">↩</button></div></div>';
+        item.querySelector('[data-r]').addEventListener('click',function(e){e.stopPropagation();restoreMeal(this.getAttribute('data-r'));});
+        el.appendChild(item);
+      });
+    }
+  }
+}
+
+function makeMealItem(m){
+  var inPlan=[].concat(state.dinners,state.lunches).some(function(p){return p&&p.name===m.name;});
+  var div=document.createElement('div');div.className='meal-item'+(inPlan?' selected':'');
+
+  var catTag=m.cat==='dinner'?'<span class="meal-tag tag-dinner">dinner</span>':m.cat==='lunch'?'<span class="meal-tag tag-lunch">lunch</span>':'<span class="meal-tag tag-both">lunch & dinner</span>';
+  var needsTag=m.list==='needs'?'<span class="meal-tag tag-needs">needs shopping</span>':'';
+  var favTag=isFav(m.name)?'<span class="meal-tag tag-fav">fav</span>':'';
+  var newTag=m.isNew?'<span class="meal-tag tag-new">new</span>':'';
+  var cnt=state.pickCounts[m.name]||0;
+  var cntHtml=cnt>0?'<div class="meal-cnt">picked '+cnt+'x</div>':'';
+  var notesHtml=m.notes?'<div class="meal-sub">'+m.notes+'</div>':'';
+
+  div.innerHTML='<div class="meal-info">'
+    +'<div class="meal-name">'+m.name+'</div>'
+    +notesHtml
+    +'<div class="meal-tags">'+catTag+needsTag+favTag+newTag+'</div>'
+    +'</div>'
+    +'<div class="meal-right">'+cntHtml
+    +'<div class="meal-actions">'
+    +'<button class="icon-btn" data-detail="'+m.name+'" title="Details">⋯</button>'
+    +'<button class="icon-btn" data-archive="'+m.name+'" title="Archive">−</button>'
+    +'</div></div>';
+
+  // Append real anchor element — only approach Safari reliably opens
+  if(m.url){
+    var a=document.createElement('a');
+    a.href=m.url;a.target='_blank';a.className='meal-link';a.textContent='recipe ↗';
+    a.addEventListener('click',function(e){e.stopPropagation();});
+    div.querySelector('.meal-right').insertBefore(a,div.querySelector('.meal-actions'));
+  }
+  div.querySelector('[data-archive]').addEventListener('click',function(e){e.stopPropagation();archiveMeal(this.getAttribute('data-archive'));});
+  div.querySelector('[data-detail]').addEventListener('click',function(e){e.stopPropagation();openDetail(this.getAttribute('data-detail'));});
+  div.onclick=function(){quickAdd(m);};
+  return div;
+}
+
+function archiveMeal(n){if(!isArchived(n))state.archived.push(n);save();renderMeals(activeFilter,searchTerm);}
+function restoreMeal(n){state.archived=state.archived.filter(function(x){return x!==n;});save();renderMeals(activeFilter,searchTerm);}
+
+function quickAdd(m){
+  var plan=m.cat==='lunch'?state.lunches:m.cat==='dinner'?state.dinners:state.dinners;
+  // if both, prefer dinner if dinner has empty slot, else lunch
+  if(m.cat==='both'){
+    var de=state.dinners.findIndex(function(p){return !p;});
+    var le=state.lunches.findIndex(function(p){return !p;});
+    if(de>=0){state.dinners[de]=m;}
+    else if(le>=0){state.lunches[le]=m;}
+    else return;
+  } else {
+    var e=plan.findIndex(function(p){return !p;});
+    if(e<0)return;
+    plan[e]=m;
+  }
+  recordPick(m.name);
+  state.gc={};save();renderPlan();switchTab('plan');
+}
+
+function recordPick(name){
+  state.history[name]=new Date().toISOString().split('T')[0];
+  state.pickCounts[name]=(state.pickCounts[name]||0)+1;
+}
+
+// ── ADD MEAL FORM ──────────────────────────────────────────────────────────
+function toggleAddForm(){
+  addFormOpen=!addFormOpen;
+  document.getElementById('add-form-wrap').style.display=addFormOpen?'block':'none';
+  document.getElementById('add-meal-btn').textContent=addFormOpen?'Cancel':'+ Add meal';
+  if(addFormOpen)document.getElementById('new-name').focus();
+}
+function cancelAdd(){addFormOpen=false;document.getElementById('add-form-wrap').style.display='none';document.getElementById('add-meal-btn').textContent='+ Add meal';}
+function saveNewMeal(){
+  var name=document.getElementById('new-name').value.trim();if(!name)return;
+  var cat=document.getElementById('new-cat').value;
+  var list=document.getElementById('new-status').value;
+  var url=document.getElementById('new-url').value.trim();
+  var notes=document.getElementById('new-notes').value.trim();
+  var ings=document.getElementById('new-ingredients').value.split('\n').map(function(s){return s.trim();}).filter(Boolean);
+  state.custom.push({name:name,cat:cat,list:list,url:url,notes:notes,i:ings,isNew:true});
+  save();cancelAdd();
+  document.getElementById('new-name').value='';document.getElementById('new-url').value='';
+  document.getElementById('new-notes').value='';document.getElementById('new-ingredients').value='';
+  renderMeals(activeFilter,searchTerm);
+  showToast('Meal added!');
+}
+
+// ── DETAIL SHEET ───────────────────────────────────────────────────────────
+function openDetail(name){
+  var all=getMeals();
+  var m=all.find(function(x){return x.name===name;});
+  if(!m)return;
+  renderDetailSheet(m);
+  document.getElementById('detail-overlay').style.display='flex';
+}
+
+function renderDetailSheet(m){
+  var sheet=document.getElementById('detail-sheet');
+  var isCustom=state.custom.some(function(c){return c.name===m.name;});
+  var catLabel=m.cat==='dinner'?'Dinner only':m.cat==='lunch'?'Lunch only':'Lunch & dinner';
+
+  // View mode
+  var ingHtml=(m.ingredients&&m.ingredients.length)
+    ?'<div style="margin-top:12px"><div style="font-size:11px;font-weight:600;color:var(--ink3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px">Ingredients to buy</div>'
+      +m.ingredients.map(function(i){return '<div style="padding:5px 0;border-bottom:1px solid var(--line2);font-size:13px;color:var(--ink)">'+i+'</div>';}).join('')+'</div>'
+    :'<div style="margin-top:12px;font-size:13px;color:var(--ink4)">No ingredients listed</div>';
+  var urlHtml=m.url?'<a class="meal-link" href="'+m.url+'" target="_blank" rel="noopener" style="display:inline-block;margin-top:10px;font-size:13px;color:var(--blue)">View recipe ↗</a>':'';
+
+  var notesHtml=m.notes?'<div style="margin-top:8px;font-size:13px;color:var(--ink3);line-height:1.5;font-style:italic">'+m.notes+'</div>':'<div style="margin-top:8px;font-size:13px;color:var(--ink4)">No notes</div>';
+
+  sheet.innerHTML='<div class="picker-header"><span style="font-size:16px;font-weight:600">'+m.name+'</span><button class="picker-close" onclick="closeDetail()">×</button></div>'
+    +'<div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">'
+    +'<span style="font-size:11px;background:var(--line2);color:var(--ink3);padding:3px 8px;border-radius:5px">'+catLabel+'</span>'
+    +(m.list==='needs'?'<span style="font-size:11px;background:var(--amber-l);color:#92400e;padding:3px 8px;border-radius:5px">Needs shopping</span>':'<span style="font-size:11px;background:var(--green-l);color:var(--green-d);padding:3px 8px;border-radius:5px">Ready to cook</span>')
+    +(isFav(m.name)?'<span style="font-size:11px;background:var(--purple-l);color:var(--purple);padding:3px 8px;border-radius:5px">Favorite</span>':'')
+    +'</div>'
+    +'<div style="font-size:11px;font-weight:600;color:var(--ink3);text-transform:uppercase;letter-spacing:.05em;margin-bottom:2px">Notes</div>'
+    +notesHtml
+    +'<div style="font-size:11px;font-weight:600;color:var(--ink3);text-transform:uppercase;letter-spacing:.05em;margin-top:12px;margin-bottom:2px">Recipe</div>'
+    +(m.url?urlHtml:'<div style="font-size:13px;color:var(--ink4);margin-top:4px">No URL added</div>')
+    +ingHtml
+    +'<div style="display:flex;gap:8px;margin-top:16px">'
+    +'<button id="d-edit-btn" style="flex:1;background:var(--line2);color:var(--ink);border:1px solid var(--line);border-radius:10px;padding:11px;font-size:13px;font-weight:500;cursor:pointer">Edit</button>'
+    +'<button id="d-add-btn" style="flex:2;background:var(--green);color:white;border:none;border-radius:10px;padding:11px;font-size:13px;font-weight:600;cursor:pointer">Add to plan</button>'
+    +'</div>';
+
+  document.getElementById('d-add-btn').addEventListener('click',function(){quickAdd(m);closeDetail();});
+  document.getElementById('d-edit-btn').addEventListener('click',function(){renderEditSheet(m);});
+}
+
+function renderEditSheet(m){
+  var sheet=document.getElementById('detail-sheet');
+  var rawIngs=(m.i||[]).join('\n'); // show all including staples for editing
+  sheet.innerHTML='<div class="picker-header"><span style="font-size:15px;font-weight:600">Edit: '+m.name+'</span><button class="picker-close" onclick="closeDetail()">×</button></div>'
+    +'<label class="form-label" style="margin-top:4px">Category</label>'
+    +'<select class="form-input" id="e-cat">'
+    +'<option value="dinner"'+(m.cat==='dinner'?' selected':'')+'>Dinner only</option>'
+    +'<option value="lunch"'+(m.cat==='lunch'?' selected':'')+'>Lunch only</option>'
+    +'<option value="both"'+(m.cat==='both'?' selected':'')+'>Both lunch & dinner</option>'
+    +'</select>'
+    +'<label class="form-label">Status</label>'
+    +'<select class="form-input" id="e-status">'
+    +'<option value="normal"'+(m.list==='normal'?' selected':'')+'>Ready to cook</option>'
+    +'<option value="needs"'+(m.list==='needs'?' selected':'')+'>Needs shopping</option>'
+    +'</select>'
+    +'<label class="form-label">Recipe URL</label>'
+    +'<input type="text" class="form-input" id="e-url" value="'+(m.url||'')+'" placeholder="https://..." />'
+    +'<label class="form-label">Notes</label>'
+    +'<textarea class="form-input" id="e-notes" style="min-height:60px" placeholder="e.g. sub chicken broth for wine...">'+(m.notes||'')+'</textarea>'
+    +'<label class="form-label">Ingredients to buy (one per line)</label>'
+    +'<textarea class="form-input" id="e-ings" style="min-height:80px" placeholder="e.g.&#10;1 lb chicken breast&#10;bell peppers">'+rawIngs+'</textarea>'
+    +'<div style="display:flex;gap:8px;margin-top:12px">'
+    +'<button id="e-cancel-btn" style="flex:1;background:var(--line2);color:var(--ink);border:1px solid var(--line);border-radius:10px;padding:11px;font-size:13px;cursor:pointer">Cancel</button>'
+    +'<button id="e-save-btn" style="flex:2;background:var(--green);color:white;border:none;border-radius:10px;padding:11px;font-size:14px;font-weight:600;cursor:pointer">Save changes</button>'
+    +'</div>';
+
+  document.getElementById('e-cancel-btn').addEventListener('click',function(){renderDetailSheet(m);});
+  document.getElementById('e-save-btn').addEventListener('click',function(){
+    var cat=document.getElementById('e-cat').value;
+    var status=document.getElementById('e-status').value;
+    var url=document.getElementById('e-url').value.trim();
+    var notes=document.getElementById('e-notes').value.trim();
+    var ings=document.getElementById('e-ings').value.split('\n').map(function(s){return s.trim();}).filter(Boolean);
+
+    // Check if it's already in custom (edited before)
+    var ci=state.custom.findIndex(function(c){return c.name===m.name;});
+    var updated=Object.assign({},m,{cat:cat,list:status,url:url,notes:notes,i:ings,ingredients:ings.filter(function(x){return !isStaple(x);})});
+    if(ci>=0){
+      state.custom[ci]=updated;
+    } else {
+      // Store as custom override for built-in meals
+      state.custom.push(updated);
+    }
+    // Also update any instances in the current plan
+    state.dinners=state.dinners.map(function(s){return s&&s.name===m.name?updated:s;});
+    state.lunches=state.lunches.map(function(s){return s&&s.name===m.name?updated:s;});
+    save();
+    renderDetailSheet(updated);
+    renderMeals(activeFilter,searchTerm);
+    renderPlan();
+    showToast('Saved!');
+  });
+}
+
+function getMealByName(n){return getMeals().find(function(m){return m.name===n;});}
+function closeDetail(e){if(!e||e.target===document.getElementById('detail-overlay'))document.getElementById('detail-overlay').style.display='none';}
+
+// ── PICKER ─────────────────────────────────────────────────────────────────
+var pickerIdx=null,pickerType=null;
+function openPicker(i,type){
+  pickerIdx=i;pickerType=type;
+  var cur=type==='dinner'?state.dinners[i]:state.lunches[i];
+  document.getElementById('picker-title').textContent=cur?'Swap meal':'Pick a meal';
+  document.getElementById('picker-search').value='';
+  renderPickerList('');
+  document.getElementById('picker-overlay').style.display='flex';
+}
+function renderPickerList(search){
+  var el=document.getElementById('picker-list');el.innerHTML='';
+  var pool=pickerType==='dinner'?getDinnerPool():getLunchPool();
+  var list=search?pool.filter(function(m){return m.name.toLowerCase().includes(search.toLowerCase());}):pool;
+  list.forEach(function(m){
+    var div=document.createElement('div');div.className='meal-item';
+    var catTag=m.cat==='both'?'<span class="meal-tag tag-both">both</span>':'';
+    var needsTag=m.list==='needs'?'<span class="meal-tag tag-needs">needs shopping</span>':'';
+    var favTag=isFav(m.name)?'<span class="meal-tag tag-fav">fav</span>':'';
+    var linkHtml=m.url?'<span class="meal-link" onclick="event.stopPropagation();openURL(\''+m.url+'\')">recipe ↗</span>':'';
+    div.innerHTML='<div class="meal-info"><div class="meal-name">'+m.name+'</div>'
+      +'<div class="meal-tags">'+catTag+needsTag+favTag+'</div></div>'
+      +'<div class="meal-right">'+linkHtml+'</div>';
+    div.onclick=function(){pickMeal(m);};
+    el.appendChild(div);
+  });
+}
+function pickMeal(m){
+  if(pickerType==='dinner')state.dinners[pickerIdx]=m;else state.lunches[pickerIdx]=m;
+  recordPick(m.name);
+  state.gc={};save();renderPlan();
+  document.getElementById('picker-overlay').style.display='none';
+}
+function closePicker(e){if(!e||e.target===document.getElementById('picker-overlay'))document.getElementById('picker-overlay').style.display='none';}
+
+// ── GROCERY ────────────────────────────────────────────────────────────────
+function renderGrocery(){
+  var planned=[].concat(state.dinners,state.lunches).filter(Boolean);
+  var el=document.getElementById('grocery-content');
+  if(!planned.length){el.innerHTML='<div class="empty">Add meals to your week plan first</div>';document.getElementById('g-badge').textContent='';return;}
+
+  // Collect items with index for checkbox state
+  var items=[];
+  planned.forEach(function(meal){
+    (meal.ingredients||[]).forEach(function(ing){items.push({meal:meal.name,ing:ing,list:meal.list,url:meal.url});});
+  });
+  if(!items.length){el.innerHTML='<div class="empty">All ingredients are pantry staples — you\'re good to go!</div>';document.getElementById('g-badge').textContent='';return;}
+
+  var checked=items.filter(function(_,i){return !!state.gc[i];}).length;
+  document.getElementById('g-badge').textContent=checked+' / '+items.length+' checked';
+
+  el.innerHTML='';
+  var idx=0;
+  planned.forEach(function(meal){
+    var ings=meal.ingredients||[];if(!ings.length)return;
+    var group=document.createElement('div');group.className='grocery-group';
+    var tag=meal.list==='needs'?'<span class="meal-tag tag-needs">needs shopping</span>':'<span class="meal-tag tag-dinner" style="background:var(--green-l);color:var(--green-d)">ready</span>';
+    var link=meal.url?'<a class="meal-link" href="'+meal.url+'" target="_blank" rel="noopener">recipe ↗</a>':'';
+    group.innerHTML='<div class="grocery-group-title">'+meal.name+' '+tag+' '+link+'</div>';
+    ings.forEach(function(ing){
+      var i=idx++;var done=!!state.gc[i];
+      var row=document.createElement('div');row.className='g-item';
+      row.innerHTML='<div class="g-check'+(done?' done':'')+'" data-i="'+i+'"></div><div class="g-text'+(done?' done':'')+'">'+ing+'</div>';
+      row.querySelector('.g-check').addEventListener('click',function(){state.gc[parseInt(this.getAttribute('data-i'))]=!state.gc[parseInt(this.getAttribute('data-i'))];save();renderGrocery();});
+      group.appendChild(row);
+    });
+    el.appendChild(group);
+  });
+}
+
+// ── FILTER / SEARCH ────────────────────────────────────────────────────────
+function setFilter(f,el){
+  activeFilter=f;
+  document.querySelectorAll('.filter-btn').forEach(function(b){b.classList.remove('active');});
+  el.classList.add('active');
+  renderMeals(f,searchTerm);
+}
+function filterMeals(val){searchTerm=val;renderMeals(activeFilter,val);}
+
+// ── TAB SWITCHING ──────────────────────────────────────────────────────────
+function switchTab(name){
+  document.querySelectorAll('.tab').forEach(function(t,i){['plan','meals','grocery'].forEach(function(n,j){if(i===j)t.classList.toggle('active',n===name);});});
+  document.querySelectorAll('.panel').forEach(function(p){p.classList.remove('active');});
+  document.getElementById('panel-'+name).classList.add('active');
+  if(name==='meals')renderMeals(activeFilter,searchTerm);
+  if(name==='grocery')renderGrocery();
+}
+
+// ── OPEN URL (iOS Safari compatible) ────────────────────────────────────────
+function openURL(url){
+  if(!url)return;
+  window.open(url,'_blank');
+}
+// Links use native <a> tags with stopPropagation
+
+// ── INIT ───────────────────────────────────────────────────────────────────
+renderPlan();
+</script>
+</body>
+</html>
