@@ -313,8 +313,10 @@ var BUILT_IN=[
 var state;
 try{state=JSON.parse(localStorage.getItem('mp_v3')||'null');}catch(e){}
 if(!state)state={dinners:[null,null,null,null,null,null],lunches:[null,null,null,null,null,null],gc:{},history:{},pickCounts:{},archived:[],custom:[],gfMode:false};
-if(!state.dinners)state.dinners=[null,null,null,null];
-if(!state.lunches)state.lunches=[null,null,null,null];
+if(!state.dinners)state.dinners=[null,null,null,null,null,null];
+if(!state.lunches)state.lunches=[null,null,null,null,null,null];
+while(state.dinners.length<6)state.dinners.push(null);
+while(state.lunches.length<6)state.lunches.push(null);
 if(!state.gc)state.gc={};
 if(!state.history)state.history={};
 if(!state.pickCounts)state.pickCounts={};
@@ -437,7 +439,7 @@ function addSlot(type){
   if(type==='dinner'&&state.dinners.length<6){state.dinners.push(null);save();renderPlan();}
   else if(type==='lunch'&&state.lunches.length<6){state.lunches.push(null);save();renderPlan();}
 }
-function clearPlan(){state.dinners=[null,null,null,null];state.lunches=[null,null,null,null];state.gc={};save();renderPlan();}
+function clearPlan(){state.dinners=[null,null,null,null,null,null];state.lunches=[null,null,null,null,null,null];state.gc={};save();renderPlan();}
 
 var activeFilter='all',searchTerm='',showArchived=false,addFormOpen=false;
 
