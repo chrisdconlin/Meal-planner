@@ -202,7 +202,9 @@ textarea.form-input{resize:vertical;min-height:60px}
 <!-- GROCERY -->
 <div class="panel" id="panel-grocery">
   <div class="card">
-    <div class="card-title">Grocery list <span class="card-badge" id="g-badge"></span></div>
+    <div class="card-title">Grocery list <span class="card-badge" id="g-badge"></span>
+      <button class="btn" id="copy-btn" onclick="copyGroceryList()" style="margin-left:auto;font-size:11px;padding:4px 10px">Copy list</button>
+    </div>
     <div id="grocery-content"></div>
   </div>
 </div>
@@ -381,14 +383,14 @@ function showToast(msg){var t=document.getElementById('toast');t.textContent=msg
 function randomize(type){
   if(type==='dinner'){
     var pool=getDinnerPool();
-    var n=Math.min(4,state.dinners.filter(Boolean).length||4);
+    var n=state.dinners.length||6;
     state.dinners=weightedPick(pool,n);
-    while(state.dinners.length<4)state.dinners.push(null);
+    while(state.dinners.length<n)state.dinners.push(null);
   } else {
     var pool2=getLunchPool();
-    var n2=Math.min(4,state.lunches.filter(Boolean).length||4);
+    var n2=state.lunches.length||6;
     state.lunches=weightedPick(pool2,n2);
-    while(state.lunches.length<4)state.lunches.push(null);
+    while(state.lunches.length<n2)state.lunches.push(null);
   }
   save();renderPlan(true);
 }
@@ -676,6 +678,28 @@ function saveDetailEdit(origName, displayName){
 }
 
 function closeDetail(e){if(!e||e.target===document.getElementById('detail-overlay'))document.getElementById('detail-overlay').style.display='none';}
+
+function copyGroceryList(){
+  var planned=[].concat(state.dinners,state.lunches).filter(Boolean);
+  if(!planned.length){showToast('No meals planned yet');return;}
+  var text='';
+  planned.forEach(function(meal){
+    var ings=meal.ingredients||[];
+    if(!ings.length)return;
+    text+=meal.name+':\n';
+    ings.forEach(function(ing){text+='  • '+ing+'\n';});
+    text+='\n';
+  });
+  if(!text){showToast('Nothing to copy — all pantry staples');return;}
+  navigator.clipboard.writeText(text.trim()).then(function(){
+    showToast('Grocery list copied!');
+    var btn=document.getElementById('copy-btn');
+    btn.textContent='Copied ✓';
+    setTimeout(function(){btn.textContent='Copy list';},2000);
+  }).catch(function(){
+    showToast('Copy failed — try selecting manually');
+  });
+}
 
 function switchTab(tab){
   document.querySelectorAll('.tab').forEach(function(t,i){t.classList.toggle('active',['plan','meals','grocery'][i]===tab);});
