@@ -231,7 +231,7 @@ textarea.form-input{resize:vertical;min-height:60px}
 <div class="toast" id="toast"></div>
 
 <script>
-var STAPLES=new Set(["salt","pepper","salt & pepper","basic spices","cumin","paprika","chili powder","italian seasoning","garlic powder","onion powder","butter","olive oil","garlic","fresh garlic","soy sauce","sesame oil","eggs","egg","rice","chicken broth","shredded cheddar","cheddar cheese","flour tortillas","breadcrumbs","parmesan","mayo","ketchup","mustard","condiments","dipping sauces","shredded mozzarella","mozzarella","heavy cream","honey","brown sugar","fish sauce","sriracha","hot sauce","chili flakes","red pepper flakes","jar of marinara","marinara","diced tomatoes","canned tomatoes","tomato sauce","corn","canned corn","green onions","lemon","lime","lemon / lime","parsley","rosemary","basil","cilantro","oregano","fresh basil","fresh parsley","fresh oregano","fresh cilantro","olive oil",]);
+var STAPLES=new Set(["salt","pepper","salt & pepper","basic spices","cumin","paprika","chili powder","italian seasoning","garlic powder","onion powder","butter","olive oil","garlic","fresh garlic","soy sauce","sesame oil","eggs","egg","rice","chicken broth","shredded cheddar","cheddar cheese","flour tortillas","breadcrumbs","parmesan","mayo","ketchup","mustard","condiments","dipping sauces","shredded mozzarella","mozzarella","heavy cream","honey","brown sugar","fish sauce","sriracha","hot sauce","chili flakes","red pepper flakes","jar of marinara","marinara","diced tomatoes","canned tomatoes","tomato sauce","corn","canned corn","green onions","lemon","lime","lemon / lime","parsley","rosemary","basil","cilantro","oregano","fresh basil","fresh parsley","fresh oregano","fresh cilantro","olive oil","ground beef","taco seasoning","salmon","chicken breasts","salsa","chicken thighs","garam masala","turmeric","shrimp","bonza","carrots","cream cheese"]);
 function isStaple(i){var l=i.toLowerCase();for(var s of STAPLES){if(l.includes(s))return true;}return false;}
 
 var BUILT_IN=[
@@ -693,22 +693,51 @@ function copyGroceryList(){
   var planned=[].concat(state.dinners,state.lunches).filter(Boolean);
   if(!planned.length){showToast('No meals planned yet');return;}
   var text='';
+  var idx=0;
   planned.forEach(function(meal){
     var ings=meal.ingredients||[];
-    if(!ings.length)return;
-    text+=meal.name+':\n';
-    ings.forEach(function(ing){text+='  • '+ing+'\n';});
-    text+='\n';
+    if(!ings.length){idx+=0;return;}
+    var unchecked=[];
+    ings.forEach(function(ing){
+      if(!state.gc[idx])unchecked.push(ing);
+      idx++;
+    });
+    if(unchecked.length){
+      text+=meal.name+':\n';
+      unchecked.forEach(function(ing){text+='  • '+ing+'\n';});
+      text+='\n';
+    }
   });
-  if(!text){showToast('Nothing to copy — all pantry staples');return;}
-  navigator.clipboard.writeText(text.trim()).then(function(){
+  if(!text){showToast('Nothing left to buy — all checked off!');return;}
+  var btn=document.getElementById('copy-btn');
+  // iOS-safe copy using textarea fallback
+  try {
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(text.trim()).then(function(){
+        btn.textContent='Copied ✓';
+        setTimeout(function(){btn.textContent='Copy list';},2000);
+        showToast('Grocery list copied!');
+      }).catch(function(){fallbackCopy(text.trim(),btn);});
+    } else {
+      fallbackCopy(text.trim(),btn);
+    }
+  } catch(e){fallbackCopy(text.trim(),btn);}
+}
+
+function fallbackCopy(text,btn){
+  var ta=document.createElement('textarea');
+  ta.value=text;
+  ta.style.cssText='position:fixed;top:0;left:0;opacity:0;';
+  document.body.appendChild(ta);
+  ta.focus();ta.select();
+  try{
+    document.execCommand('copy');
+    if(btn){btn.textContent='Copied ✓';setTimeout(function(){btn.textContent='Copy list';},2000);}
     showToast('Grocery list copied!');
-    var btn=document.getElementById('copy-btn');
-    btn.textContent='Copied ✓';
-    setTimeout(function(){btn.textContent='Copy list';},2000);
-  }).catch(function(){
-    showToast('Copy failed — try selecting manually');
-  });
+  } catch(e){
+    showToast('Long-press the list to copy manually');
+  }
+  document.body.removeChild(ta);
 }
 
 function switchTab(tab){
