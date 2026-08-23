@@ -1,0 +1,19 @@
+Meal Planner
+This week
+Meals
+Grocery
+GF + low sugar mode
+Randomizer only picks gluten-free, lower-sugar meals
+
+DINNERS
+0 / 4
+Randomize dinners
++ Add slot
+LUNCHES
+0 / 4
+Randomize lunches
++ Add slot
+View grocery list
+Clear all
+Plan persists until you clear it. Tap any slot to swap.
+
